@@ -5,14 +5,14 @@ import tempfile
 import os
 from streamlit_pdf_viewer import pdf_viewer
 
-# --- PDF Logic ---
+# --- PDF Generation Engine ---
 class UltimateResume(FPDF):
     def add_page_border(self, color):
         self.set_draw_color(*color)
         self.set_line_width(1.0)
         self.rect(5, 5, 200, 287)
 
-    def add_sidebar_stripe(self, color):
+    def add_sidebar_design(self, color):
         self.set_fill_color(*color)
         self.rect(0, 0, 70, 297, 'F')
 
@@ -29,7 +29,7 @@ class UltimateResume(FPDF):
             except: self.ln(15)
         else: self.ln(15)
 
-        # Contact & Skills (Left Stripe)
+        # Left Column Data (White Text)
         self.set_text_color(255, 255, 255)
         self.set_font(font_to_use, 'B', 12)
         self.set_x(7)
@@ -46,7 +46,7 @@ class UltimateResume(FPDF):
         self.set_x(7)
         self.multi_cell(55, 5, data.get('skills', ''))
 
-        # Main Content (Right Side)
+        # Right Column Data (Theme Color Text)
         self.set_text_color(*color)
         self.set_xy(75, 20)
         self.set_font(font_to_use, 'B', 24)
@@ -76,4 +76,76 @@ class UltimateResume(FPDF):
 def create_pdf(data, color_theme, lang_choice, photo_file):
     pdf = UltimateResume()
     pdf.add_page()
-    themes = {"Emerald Green": (0, 77, 64), "Royal Gold": (184, 134, 11), "Classic Black": (0, 0, 0), "Deep
+    themes = {"Emerald Green": (0, 77, 64), "Royal Gold": (184, 134, 11), "Classic Black": (0, 0, 0), "Deep Red": (139, 0, 0), "Midnight Blue": (26, 35, 126)}
+    color = themes.get(color_theme, (0, 0, 0))
+    
+    photo_path = None
+    if photo_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+            img = Image.open(photo_file)
+            img = ImageOps.fit(img, (350, 450), Image.LANCZOS).convert("RGB")
+            img.save(tmp.name)
+            photo_path = tmp.name
+    
+    pdf.add_sidebar_design(color)
+    pdf.add_content(data, color, lang_choice, photo_path)
+    pdf.add_page_border(color)
+    
+    tmp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    pdf.output(tmp_pdf.name)
+    return tmp_pdf.name
+
+# --- Streamlit Responsive UI ---
+st.set_page_config(page_title="Resume Builder Pro", layout="wide")
+
+# Custom CSS for Mobile Preview
+st.markdown("""
+    <style>
+    [data-testid="stVerticalBlock"] > div:has(iframe) { overflow-x: auto; }
+    .stButton button { width: 100%; font-weight: bold; height: 3em; border-radius: 8px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+st.title("💎 Professional AI Resume Builder")
+
+# Mobile aur Web dono par 1:1 ratio rakhega
+col1, col2 = st.columns([1, 1])
+
+with col1:
+    st.subheader("🎨 Customize & Info")
+    # All settings moved here from sidebar
+    c_sub1, c_sub2 = st.columns(2)
+    with c_sub1:
+        lang = st.selectbox("Language / भाषा", ["English", "Hindi", "Marathi"])
+    with c_sub2:
+        theme = st.selectbox("Theme Color", ["Emerald Green", "Royal Gold", "Classic Black", "Deep Red", "Midnight Blue"])
+    
+    uploaded_photo = st.file_uploader("📸 Photo Upload", type=['jpg', 'png'])
+    
+    st.divider()
+    
+    st.subheader("📝 Resume Details")
+    name = st.text_input("Full Name", "Sonu Sharma")
+    phone = st.text_input("Mobile Number")
+    email = st.text_input("Email Address")
+    summary = st.text_area("Profile Summary")
+    experience = st.text_area("Experience (Job Title, Company)")
+    education = st.text_area("Education (Degree, University)")
+    skills = st.text_area("Key Skills")
+    certs = st.text_area("Certifications & Awards")
+
+with col2:
+    st.subheader("📄 Real-Time Preview")
+    user_data = {'name': name, 'phone': phone, 'email': email, 'summary': summary, 
+                 'education': education, 'experience': experience, 'skills': skills, 'certs': certs}
+    
+    if st.button("🚀 Generate & Refresh Preview"):
+        try:
+            pdf_path = create_pdf(user_data, theme, lang, uploaded_photo)
+            # Mobile par responsive zoom ke liye width=None
+            pdf_viewer(input=pdf_path, width=None)
+            
+            with open(pdf_path, "rb") as f:
+                st.download_button("📥 Download Official PDF", data=f, file_name=f"{name}_Resume.pdf", mime="application/pdf")
+        except Exception as e:
+            st.error(f"Error: {e}")
