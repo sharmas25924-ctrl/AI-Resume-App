@@ -5,7 +5,7 @@ import tempfile
 import os
 from streamlit_pdf_viewer import pdf_viewer
 
-# --- PDF Generation Logic ---
+# --- PDF Logic (No Change Here) ---
 class UltimateResume(FPDF):
     def add_page_border(self, color):
         self.set_draw_color(*color)
@@ -29,7 +29,6 @@ class UltimateResume(FPDF):
             except: self.ln(15)
         else: self.ln(15)
 
-        # Sidebar Details
         self.set_text_color(255, 255, 255)
         self.set_font(font_to_use, 'B', 12)
         self.set_x(7)
@@ -46,16 +45,15 @@ class UltimateResume(FPDF):
         self.set_x(7)
         self.multi_cell(55, 5, data.get('skills', ''))
 
-        # Main Body
         self.set_text_color(*color)
         self.set_xy(75, 20)
-        self.set_font(font_to_use, 'B', 28)
+        self.set_font(font_to_use, 'B', 24)
         self.cell(130, 15, data.get('name', 'SONU SHARMA').upper(), ln=True)
         
         self.set_text_color(80, 80, 80)
-        self.set_font(font_to_use, '', 11)
+        self.set_font(font_to_use, '', 10)
         self.set_x(75)
-        self.multi_cell(120, 6, data.get('summary', ''))
+        self.multi_cell(120, 5, data.get('summary', ''))
         self.line(75, 62, 200, 62) 
 
         y_pos = 68
@@ -95,53 +93,56 @@ def create_pdf(data, color_theme, lang_choice, photo_file):
     pdf.output(tmp_pdf.name)
     return tmp_pdf.name
 
-# --- Responsive UI Design ---
-st.set_page_config(page_title="AI Resume Maker", layout="wide")
+# --- Responsive UI & CSS ---
+st.set_page_config(page_title="AI Resume Pro", layout="wide")
 
-# Sidebar for Theme & Language (Mobile par ye menu button ke andar chupa hota hai)
-st.sidebar.title("🎨 Customization")
-lang = st.sidebar.selectbox("Language / भाषा", ["English", "Hindi", "Marathi"])
-theme = st.sidebar.selectbox("Theme Color", ["Emerald Green", "Royal Gold", "Classic Black", "Deep Red"])
-uploaded_photo = st.sidebar.file_uploader("📸 Upload Photo", type=['jpg', 'png'])
+# Mobile optimization CSS
+st.markdown("""
+    <style>
+    /* Mobile par preview ko scrollable banane ke liye */
+    [data-testid="stVerticalBlock"] > div:has(iframe) {
+        overflow-x: auto;
+    }
+    /* Buttons ko mobile par full width karne ke liye */
+    .stButton button {
+        width: 100%;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-st.title("🚀 AI Resume Builder Pro")
-st.info("💡 Tip: Mobile par input bharne ke baad niche 'Show Preview' par click karein.")
+# Sidebar for Config
+with st.sidebar:
+    st.header("Settings")
+    lang = st.selectbox("Language", ["English", "Hindi", "Marathi"])
+    theme = st.selectbox("Theme", ["Emerald Green", "Royal Gold", "Classic Black", "Deep Red"])
+    photo = st.file_uploader("Upload Photo", type=['jpg', 'png'])
 
 # Main Layout
-col_input, col_preview = st.columns([1, 1])
+col1, col2 = st.columns([1, 1])
 
-with col_input:
-    st.subheader("👤 Personal Details")
-    name = st.text_input("Full Name", "Sonu Sharma")
-    phone = st.text_input("Phone Number")
-    email = st.text_input("Email ID")
-    address = st.text_area("Address")
-    
-    st.subheader("💼 Professional Details")
-    summary = st.text_area("Profile Summary")
-    experience = st.text_area("Experience (Company, Role, Years)")
-    education = st.text_area("Education (Degree, College)")
-    skills = st.text_area("Skills (Python, AI, Management)")
-    certs = st.text_area("Certifications")
+with col1:
+    st.header("📝 Personal Details")
+    name = st.text_input("Name", "Sonu Sharma")
+    phone = st.text_input("Phone")
+    email = st.text_input("Email")
+    summary = st.text_area("Summary")
+    experience = st.text_area("Experience")
+    education = st.text_area("Education")
+    skills = st.text_area("Skills")
+    certs = st.text_area("Certificates")
 
-with col_preview:
-    st.subheader("📄 Live Resume Preview")
-    user_data = {'name': name, 'phone': phone, 'email': email, 'address': address, 
-                 'summary': summary, 'education': education, 'experience': experience, 
-                 'skills': skills, 'certs': certs}
+with col2:
+    st.header("📄 Resume Preview")
+    data_dict = {'name': name, 'phone': phone, 'email': email, 'summary': summary, 
+                 'education': education, 'experience': experience, 'skills': skills, 'certs': certs}
     
-    # Button to trigger preview
-    if st.button("🔄 Update & Show Preview", use_container_width=True):
+    if st.button("Refresh Preview"):
         try:
-            pdf_path = create_pdf(user_data, theme, lang, uploaded_photo)
-            # Mobile-friendly width
-            pdf_viewer(input=pdf_path, width=700)
+            pdf_path = create_pdf(data_dict, theme, lang, photo)
+            # Mobile par 100% width use karne ke liye
+            pdf_viewer(input=pdf_path, width=None) # width=None means responsive
             
             with open(pdf_path, "rb") as f:
-                st.download_button(label="📥 Download Resume (PDF)", 
-                                 data=f, 
-                                 file_name=f"{name}_Resume.pdf",
-                                 mime="application/pdf",
-                                 use_container_width=True)
+                st.download_button("📥 Download PDF", data=f, file_name=f"{name}_Resume.pdf")
         except Exception as e:
             st.error(f"Error: {e}")
