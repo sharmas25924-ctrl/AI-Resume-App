@@ -125,9 +125,11 @@ with c2:
     skills = st.text_area("Skills", "Tally, AI, Management")
     experience = st.text_area("Experience", "Managing Hotel Jay Malhar Operations")
     education = st.text_area("Education", "B.Com Degree")
+    photo =
     certs = st.text_area("Certifications", "MS-CIT, Tally Prime")
 
 if st.button("Generate Resume"):
     data = {'name': name, 'email': email, 'phone': phone, 'address': address, 'dob': dob, 'gender': gender, 'summary': summary, 'education': education, 'skills': skills, 'experience': experience, 'languages': languages, 'certs': certs}
     pdf_out = create_pdf(data, theme, uploaded_photo)
     st.download_button("📥 Save PDF", data=pdf_out, file_name=f"{name}_Resume.pdf")36526
+
