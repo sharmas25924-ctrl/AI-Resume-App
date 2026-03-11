@@ -5,6 +5,7 @@ import tempfile
 import os
 from streamlit_pdf_viewer import pdf_viewer
 
+# --- PDF Generation Logic ---
 class UltimateResume(FPDF):
     def add_page_border(self, color):
         self.set_draw_color(*color)
@@ -28,7 +29,7 @@ class UltimateResume(FPDF):
             except: self.ln(15)
         else: self.ln(15)
 
-        # Sidebar
+        # Sidebar Details
         self.set_text_color(255, 255, 255)
         self.set_font(font_to_use, 'B', 12)
         self.set_x(7)
@@ -90,42 +91,57 @@ def create_pdf(data, color_theme, lang_choice, photo_file):
     pdf.add_content(data, color, lang_choice, photo_path)
     pdf.add_page_border(color)
     
-    # PDF ko ek temporary file mein save karenge preview ke liye
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
-        pdf.output(tmp_pdf.name)
-        return tmp_pdf.name
+    tmp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    pdf.output(tmp_pdf.name)
+    return tmp_pdf.name
 
-# --- UI ---
-st.set_page_config(page_title="Resume Pro", layout="wide")
+# --- Responsive UI Design ---
+st.set_page_config(page_title="AI Resume Maker", layout="wide")
 
-c1, c2 = st.columns([1, 1])
+# Sidebar for Theme & Language (Mobile par ye menu button ke andar chupa hota hai)
+st.sidebar.title("🎨 Customization")
+lang = st.sidebar.selectbox("Language / भाषा", ["English", "Hindi", "Marathi"])
+theme = st.sidebar.selectbox("Theme Color", ["Emerald Green", "Royal Gold", "Classic Black", "Deep Red"])
+uploaded_photo = st.sidebar.file_uploader("📸 Upload Photo", type=['jpg', 'png'])
 
-with c1:
-    st.header("Input")
-    name = st.text_input("Name", "Sonu Sharma")
-    phone = st.text_input("Phone")
-    email = st.text_input("Email")
+st.title("🚀 AI Resume Builder Pro")
+st.info("💡 Tip: Mobile par input bharne ke baad niche 'Show Preview' par click karein.")
+
+# Main Layout
+col_input, col_preview = st.columns([1, 1])
+
+with col_input:
+    st.subheader("👤 Personal Details")
+    name = st.text_input("Full Name", "Sonu Sharma")
+    phone = st.text_input("Phone Number")
+    email = st.text_input("Email ID")
     address = st.text_area("Address")
-    lang = st.selectbox("Language", ["English", "Hindi", "Marathi"])
-    summary = st.text_area("Summary")
-    experience = st.text_area("Experience")
-    education = st.text_area("Education")
-    photo = st.file_uploader("Photo", type=['jpg', 'png'])
-    theme = st.selectbox("Theme", ["Emerald Green", "Royal Gold", "Classic Black", "Deep Red"])
-    skills = st.text_area("Skills")
-    certs = st.text_area("Certificates")
-
-with c2:
-    st.header("Preview")
-    data = {'name': name, 'phone': phone, 'email': email, 'address': address, 'summary': summary, 'education': education, 'experience': experience, 'skills': skills, 'certs': certs}
     
-    if st.button("Show Preview"):
+    st.subheader("💼 Professional Details")
+    summary = st.text_area("Profile Summary")
+    experience = st.text_area("Experience (Company, Role, Years)")
+    education = st.text_area("Education (Degree, College)")
+    skills = st.text_area("Skills (Python, AI, Management)")
+    certs = st.text_area("Certifications")
+
+with col_preview:
+    st.subheader("📄 Live Resume Preview")
+    user_data = {'name': name, 'phone': phone, 'email': email, 'address': address, 
+                 'summary': summary, 'education': education, 'experience': experience, 
+                 'skills': skills, 'certs': certs}
+    
+    # Button to trigger preview
+    if st.button("🔄 Update & Show Preview", use_container_width=True):
         try:
-            pdf_path = create_pdf(data, theme, lang, photo)
-            # Naya Preview Method
+            pdf_path = create_pdf(user_data, theme, lang, uploaded_photo)
+            # Mobile-friendly width
             pdf_viewer(input=pdf_path, width=700)
             
             with open(pdf_path, "rb") as f:
-                st.download_button("Download PDF", data=f, file_name=f"{name}_Resume.pdf")
+                st.download_button(label="📥 Download Resume (PDF)", 
+                                 data=f, 
+                                 file_name=f"{name}_Resume.pdf",
+                                 mime="application/pdf",
+                                 use_container_width=True)
         except Exception as e:
             st.error(f"Error: {e}")
