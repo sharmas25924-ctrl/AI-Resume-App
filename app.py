@@ -28,7 +28,7 @@ class UltimateResume(FPDF):
         self.cell(60, 10, "CONTACT", ln=True)
         self.set_font("Arial", size=9)
         self.set_x(5)
-        contact_info = f"Phone: {data['phone']}\nEmail: {data['email']}\nLoc: {data['address']}\nWeb: {data['linkedin']}"
+        contact_info = f"Phone: {data['phone']}\nEmail: {data['email']}\nLoc: {data['address']}"
         self.multi_cell(60, 6, contact_info)
         
         # 3. Personal Info
@@ -129,19 +129,18 @@ with col1:
     address = st.text_input("Address")
     dob = st.text_input("DOB")
     gender = st.selectbox("Gender", ["Male", "Female", "Other"])
-    linkedin = st.text_input("LinkedIn Link")
     languages = st.text_input("Languages", "Hindi, English, Marathi")
 
 with col2:
     st.subheader("💼 Career & Education")
     summary = st.text_area("About Me", "B.Com student specializing in management.")
     skills = st.text_area("Skills", "Accounting\nTally\nAI")
-    experience = st.text_area("Experience", "Hotel Jay Malhar Operations")
+    experience = st.text_area("Experience", "Managing Hotel Jay Malhar Operations")
     education = st.text_area("Education", "B.Com - University Name")
 
 user_data = {
     'name': name, 'email': email, 'phone': phone, 'address': address, 
-    'dob': dob, 'gender': gender, 'linkedin': linkedin, 'summary': summary, 
+    'dob': dob, 'gender': gender, 'summary': summary, 
     'education': education, 'skills': skills, 'experience': experience, 'languages': languages
 }
 
