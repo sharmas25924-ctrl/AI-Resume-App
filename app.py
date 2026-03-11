@@ -17,10 +17,12 @@ class UltimateResume(FPDF):
 
     def add_content(self, data, color, lang_choice, photo_path=None):
         font_to_use = "helvetica"
-        # Agar FreeSans.ttf file hai toh hi Hindi/Marathi chalega
+        # Hindi/Marathi support only if font file exists
         if lang_choice in ["Hindi", "Marathi"] and os.path.exists("FreeSans.ttf"):
             self.add_font('FreeSans', '', 'FreeSans.ttf')
             font_to_use = 'FreeSans'
+        elif lang_choice in ["Hindi", "Marathi"]:
+            st.warning("Hindi/Marathi ke liye 'FreeSans.ttf' upload karein. Filhaal English font use ho raha hai.")
 
         if photo_path:
             try:
@@ -29,16 +31,15 @@ class UltimateResume(FPDF):
             except: self.ln(15)
         else: self.ln(15)
 
-        # --- Sidebar ---
+        # Sidebar - Contact & Skills
         self.set_text_color(255, 255, 255)
         self.set_font(font_to_use, 'B', 12)
         self.set_x(7)
         self.cell(60, 10, "CONTACT", ln=True)
         self.set_font(font_to_use, size=9)
         self.set_x(7)
-        # .get() use karne se KeyError khatam ho jayegi
-        contact_text = f"Phone: {data.get('phone','')}\nEmail: {data.get('email','')}"
-        self.multi_cell(55, 5, contact_text)
+        # .get() prevents KeyError if field is empty
+        self.multi_cell(55, 5, f"Phone: {data.get('phone','')}\nEmail: {data.get('email','')}")
         
         self.ln(5)
         self.set_font(font_to_use, 'B', 12)
@@ -48,7 +49,7 @@ class UltimateResume(FPDF):
         self.set_x(7)
         self.multi_cell(55, 5, data.get('skills', ''))
 
-        # --- Main Body ---
+        # Main Body
         self.set_text_color(*color)
         self.set_xy(75, 20)
         self.set_font(font_to_use, 'B', 28)
@@ -94,11 +95,10 @@ def create_pdf(data, color_theme, lang_choice, photo_file):
     pdf.add_sidebar(color)
     pdf.add_content(data, color, lang_choice, photo_path)
     pdf.add_page_border(color)
-    # Output as bytes for fpdf2
-    return bytes(pdf.output())
+    return bytes(pdf.output()) # Ensure bytes output for preview
 
 # --- Streamlit UI ---
-st.set_page_config(page_title="Resume Maker", layout="wide")
+st.set_page_config(page_title="AI Resume Pro", layout="wide")
 
 st.sidebar.header("Settings")
 lang = st.sidebar.selectbox("Language", ["English", "Hindi", "Marathi"])
@@ -119,15 +119,15 @@ with col_in:
     certs = st.text_area("Certifications")
 
 with col_pre:
-    st.subheader("Preview")
+    st.subheader("Live Preview")
     full_data = {'name': name, 'phone': phone, 'email': email, 'address': address, 
-                 'summary': summary, 'experience': experience, 'education': education, 
+                 'summary': summary, 'education': education, 'experience': experience, 
                  'skills': skills, 'certs': certs}
     
     if st.button("Refresh Preview"):
         try:
             pdf_bytes = create_pdf(full_data, theme, lang, photo)
-            # Preview Fix for Edge Browser
+            # Base64 encoding for safe browser preview
             base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
             pdf_display = f'<embed src="data:application/pdf;base64,{base64_pdf}" width="100%" height="800" type="application/pdf">'
             st.markdown(pdf_display, unsafe_allow_html=True)
