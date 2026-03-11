@@ -1,6 +1,6 @@
 import streamlit as st
 from fpdf import FPDF
-from PIL import Image
+from PIL import Image, ImageOps
 import tempfile
 import os
 
@@ -10,18 +10,19 @@ class UltimateResume(FPDF):
         self.rect(0, 0, 70, 297, 'F')
 
     def add_content(self, data, color, photo_path=None):
-        # PHOTO SIZE FIX: Small Passport Size
+        # --- PHOTO MIDDLE POSITION ---
         if photo_path:
             try:
-                # x=17 sidebar ke beech mein hai, w=35 chota size hai
-                self.image(photo_path, x=17, y=12, w=35)
-                self.ln(55) # Photo ke niche gap
+                # y=60 kiya hai taaki photo sidebar ke middle-upper area mein aaye
+                # x=17.5 sidebar ke centre mein hai
+                self.image(photo_path, x=17.5, y=60, w=35, h=45)
+                self.ln(110) # Photo ke niche zyada space di hai
             except:
                 self.ln(20)
         else:
             self.ln(20)
 
-        # CONTACT SECTION
+        # Sidebar Details (Photo ke niche)
         self.set_text_color(255, 255, 255)
         self.set_font("Arial", 'B', 12)
         self.set_x(5)
@@ -30,7 +31,6 @@ class UltimateResume(FPDF):
         self.set_x(5)
         self.multi_cell(60, 5, f"Phone: {data['phone']}\nEmail: {data['email']}\nLoc: {data['address']}")
         
-        # PERSONAL SECTION
         self.ln(5)
         self.set_font("Arial", 'B', 12)
         self.set_x(5)
@@ -39,7 +39,6 @@ class UltimateResume(FPDF):
         self.set_x(5)
         self.multi_cell(60, 5, f"DOB: {data['dob']}\nGender: {data['gender']}\nLang: {data['languages']}")
 
-        # SKILLS SECTION
         self.ln(5)
         self.set_font("Arial", 'B', 12)
         self.set_x(5)
@@ -58,20 +57,12 @@ class UltimateResume(FPDF):
         self.set_font("Arial", 'I', 10)
         self.set_x(75)
         self.multi_cell(120, 5, data['summary'])
-        
-        self.set_draw_color(*color)
         self.line(75, 60, 200, 60) 
         
-        # Sections: Experience, Education, Certs
-        sections = [
-            ("WORK EXPERIENCE", data['experience']),
-            ("EDUCATION", data['education']),
-            ("CERTIFICATIONS", data['certs'])
-        ]
-        
-        current_y = 65
+        y_pos = 65
+        sections = [("WORK EXPERIENCE", data['experience']), ("EDUCATION", data['education']), ("CERTIFICATIONS", data['certs'])]
         for title, content in sections:
-            self.set_xy(75, current_y)
+            self.set_xy(75, y_pos)
             self.set_text_color(*color)
             self.set_font("Arial", 'B', 13)
             self.cell(130, 8, title, ln=True)
@@ -79,7 +70,7 @@ class UltimateResume(FPDF):
             self.set_font("Arial", size=10)
             self.set_x(75)
             self.multi_cell(120, 5, content)
-            current_y = self.get_y() + 5
+            y_pos = self.get_y() + 5
 
 def create_pdf(data, color_theme, photo_file):
     pdf = UltimateResume()
@@ -90,9 +81,9 @@ def create_pdf(data, color_theme, photo_file):
     photo_path = None
     if photo_file:
         temp_dir = tempfile.gettempdir()
-        photo_path = os.path.join(temp_dir, "resume_pic.png")
+        photo_path = os.path.join(temp_dir, "sonu_mid.jpg")
         img = Image.open(photo_file)
-        # Passport ratio fix
+        img = ImageOps.fit(img, (350, 450), Image.LANCZOS)
         img = img.convert("RGB")
         img.save(photo_path)
 
@@ -100,33 +91,29 @@ def create_pdf(data, color_theme, photo_file):
     pdf.add_content(data, color, photo_path)
     return pdf.output(dest='S').encode('latin-1', 'ignore')
 
-st.set_page_config(page_title="AI Resume Maker", layout="wide")
-st.sidebar.title("Resume Settings")
-theme = st.sidebar.selectbox("Theme Color", ["Midnight Blue", "Charcoal Grey", "Deep Red"])
+st.set_page_config(page_title="Pro Resume Maker", layout="wide")
+st.sidebar.title("Settings")
+theme = st.sidebar.selectbox("Color Theme", ["Midnight Blue", "Charcoal Grey", "Deep Red"])
 uploaded_photo = st.sidebar.file_uploader("Upload Photo", type=['jpg', 'png', 'jpeg'])
 
-st.title("🚀 Professional AI Resume Builder")
+st.title("🚀 Pro AI Resume Builder")
 c1, c2 = st.columns(2)
 with c1:
     name = st.text_input("Full Name", "Sonu Sharma")
-    email = st.text_input("Email", "sharmas25924@gmail.com")
+    email = st.text_input("Email")
     phone = st.text_input("Phone")
-    address = st.text_input("City, State")
-    dob = st.text_input("DOB (DD/MM/YYYY)")
-    gender = st.selectbox("Gender", ["Male", "Female", "Other"])
-    languages = st.text_input("Languages", "Hindi, English, Marathi")
+    address = st.text_input("City")
+    dob = st.text_input("DOB")
+    gender = st.selectbox("Gender", ["Male", "Female"])
+    languages = st.text_input("Languages", "Hindi, Marathi, English")
 with c2:
-    summary = st.text_area("Summary", "B.Com student with management skills.")
-    skills = st.text_area("Skills", "Tally, AI, Operations")
+    summary = st.text_area("Summary", "B.Com student specializing in management.")
+    skills = st.text_area("Skills", "Tally, AI, Management")
     experience = st.text_area("Experience", "Managing Hotel Jay Malhar Operations")
     education = st.text_area("Education", "B.Com Degree")
     certs = st.text_area("Certifications", "MS-CIT, Tally Prime")
 
-user_data = {'name': name, 'email': email, 'phone': phone, 'address': address, 'dob': dob, 'gender': gender, 'summary': summary, 'education': education, 'skills': skills, 'experience': experience, 'languages': languages, 'certs': certs}
-
-if st.button("Generate & Download Resume"):
-    try:
-        pdf_out = create_pdf(user_data, theme, uploaded_photo)
-        st.download_button("📥 Click to Download PDF", data=pdf_out, file_name=f"{name}_Resume.pdf")
-    except Exception as e:
-        st.error(f"Error: {e}. Please use English text only.")
+if st.button("Generate Resume"):
+    data = {'name': name, 'email': email, 'phone': phone, 'address': address, 'dob': dob, 'gender': gender, 'summary': summary, 'education': education, 'skills': skills, 'experience': experience, 'languages': languages, 'certs': certs}
+    pdf_out = create_pdf(data, theme, uploaded_photo)
+    st.download_button("📥 Save PDF", data=pdf_out, file_name=f"{name}_Resume.pdf")
